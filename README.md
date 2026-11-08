@@ -10,7 +10,7 @@ Neovim handles the move when another window sits in that direction. At the edge 
 
 ```lua
 {
-  'sergejgavrilov/rex-navigator.nvim',
+  'Kopfdreher/rex-navigator.nvim',
   config = function()
     require('rex-navigator').setup()
   end,
@@ -20,7 +20,7 @@ Neovim handles the move when another window sits in that direction. At the edge 
 ### vim.pack
 
 ```lua
-vim.pack.add({ 'https://github.com/sergejgavrilov/rex-navigator.nvim' })
+vim.pack.add({ 'https://github.com/Kopfdreher/rex-navigator.nvim' })
 require('rex-navigator').setup()
 ```
 
