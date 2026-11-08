@@ -1,0 +1,45 @@
+*rex-navigator.txt*  Navigate between Neovim windows and Rex panes
+
+Author: sergejgavrilov
+License: MIT
+
+INTRODUCTION                                     *rex-navigator*
+
+rex-navigator.nvim moves focus with <C-h>, <C-j>, <C-k>, and <C-l>.
+When |wincmd| stays on the same window and $REX_SESSION is set, it runs
+`rex focus` in that session. Pair it with rex/navigator.lua so Rex binds
+the same keys to pane.focus.
+
+SETUP                                            *rex-navigator-setup*
+
+>lua
+    require('rex-navigator').setup({
+      disable_when_zoomed = false,
+      keymaps = {
+        left = '<C-h>',
+        down = '<C-j>',
+        up = '<C-k>',
+        right = '<C-l>',
+      },
+    })
+<
+
+Set `keymaps` to `false` to install no mappings.
+
+                                             *rex-navigator.navigate()*
+navigate({dir})
+    Move one Neovim window in {dir}, one of "h", "j", "k", or "l".
+    If the window does not change, focus the neighboring Rex pane.
+
+REX MODULE                                       *rex-navigator-rex*
+
+In ~/.config/rex/init.lua:
+
+>lua
+    package.path = package.path .. ';/path/to/rex-navigator.nvim/?.lua'
+    require('rex.navigator').setup()
+<
+
+Default Rex bindings: ctrl+h left, ctrl+j down, ctrl+k up, ctrl+l right.
+
+ vim:tw=78:ts=8:noet:ft=help:norl:
