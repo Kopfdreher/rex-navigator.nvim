@@ -30,6 +30,8 @@ Set `keymaps` to `false` to install no mappings.
 navigate({dir})
     Move one Neovim window in {dir}, one of "h", "j", "k", or "l".
     If the window does not change, focus the neighboring Rex pane.
+    If that pane is not there, focus the previous Rex window for "h"
+    and "k", or the next Rex window for "j" and "l".
 
 REX MODULE                                       *rex-navigator-rex*
 

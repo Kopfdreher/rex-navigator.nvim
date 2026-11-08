@@ -1,83 +1,88 @@
-local config = require('rex-navigator.config')
-
 local M = {}
 
-local directions = {
-  h = 'left',
-  j = 'down',
-  k = 'up',
-  l = 'right',
+local defaults = {
+  disable_when_zoomed = false,
+  keymaps = {
+    left = '<C-h>',
+    down = '<C-j>',
+    up = '<C-k>',
+    right = '<C-l>',
+  },
 }
 
-local function zoomed()
-  if not config.options.disable_when_zoomed then
-    return false
-  end
-  local block = vim.env.REX_BLOCK
-  local session = vim.env.REX_SESSION
-  if not block or block == '' or not session or session == '' then
-    return false
-  end
-  local result = vim.system({
-    'rex',
-    'block',
-    'inspect',
-    block,
-    '-s',
-    session,
-    '--json',
-  }, { text = true }):wait()
-  if result.code ~= 0 or not result.stdout then
-    return false
-  end
-  return result.stdout:match('"zoomed"%s*:%s*true') ~= nil
+local to_rex = { h = 'left', j = 'down', k = 'up', l = 'right' }
+local to_wincmd = { left = 'h', down = 'j', up = 'k', right = 'l' }
+
+local function blank(value)
+  return value == nil or value == ''
 end
 
-local function focus_rex(dir)
-  local session = vim.env.REX_SESSION
-  if not session or session == '' or zoomed() then
-    return
-  end
-  local direction = directions[dir]
-  if not direction then
-    return
-  end
-  vim.system({ 'rex', 'focus', direction, '-s', session }, { text = true }):wait()
+local function rex(args)
+  return vim.system({ 'rex', unpack(args) }, { text = true }):wait()
 end
 
-function M.navigate(dir)
-  local before = vim.api.nvim_get_current_win()
-  vim.cmd('wincmd ' .. dir)
-  if vim.api.nvim_get_current_win() == before then
-    focus_rex(dir)
+local function zoomed(session)
+  if not M.options.disable_when_zoomed or blank(vim.env.REX_BLOCK) then
+    return false
   end
+  local result = rex({ 'block', 'inspect', vim.env.REX_BLOCK, '-s', session, '--json' })
+  return result.code == 0
+    and result.stdout ~= nil
+    and result.stdout:find('"zoomed"%s*:%s*true') ~= nil
 end
 
-local keymap_for = {
-  left = 'h',
-  down = 'j',
-  up = 'k',
-  right = 'l',
-}
-
-local function apply_keymaps()
-  local keymaps = config.options.keymaps
-  if keymaps == false then
-    return
+local function active_block(session)
+  local result = rex({ 'session', 'inspect', session, '--json' })
+  if result.code ~= 0 or blank(result.stdout) then
+    return nil
   end
-  for name, dir in pairs(keymap_for) do
-    local lhs = keymaps[name]
-    if lhs and lhs ~= '' then
-      vim.keymap.set({ 'n', 'x', 't' }, lhs, function()
-        M.navigate(dir)
-      end, { desc = 'Rex navigator ' .. name, silent = true })
+  local ok, data = pcall(vim.json.decode, result.stdout)
+  if not ok or type(data) ~= 'table' or type(data.windows) ~= 'table' then
+    return nil
+  end
+  for _, window in ipairs(data.windows) do
+    if window.window_id == data.active_window_id then
+      return window.focused_block_id
     end
   end
 end
 
-function M.setup(opts)
-  config.setup(opts)
-  apply_keymaps()
+function M.navigate(dir)
+  local win = vim.api.nvim_get_current_win()
+  vim.cmd.wincmd(dir)
+  if vim.api.nvim_get_current_win() ~= win then
+    return
+  end
+  local session = vim.env.REX_SESSION
+  local direction = to_rex[dir]
+  if blank(session) or not direction or zoomed(session) then
+    return
+  end
+  local before = active_block(session) or vim.env.REX_BLOCK
+  rex({ 'focus', direction, '-s', session })
+  if active_block(session) ~= before then
+    return
+  end
+  local step = (dir == 'h' or dir == 'k') and 'prev' or 'next'
+  rex({ 'window', 'focus', step, '--wrap', '-s', session })
 end
+
+function M.setup(opts)
+  M.options = vim.tbl_deep_extend('force', {}, defaults, opts or {})
+  local keymaps = M.options.keymaps
+  if not keymaps then
+    return
+  end
+  for name, lhs in pairs(keymaps) do
+    local dir = to_wincmd[name]
+    if dir and lhs and lhs ~= '' then
+      vim.keymap.set({ 'n', 'x', 't' }, lhs, function()
+        M.navigate(dir)
+      end, { desc = 'Navigate ' .. name, silent = true })
+    end
+  end
+end
+
+M.options = vim.deepcopy(defaults)
 
 return M

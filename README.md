@@ -1,41 +1,32 @@
 # rex-navigator.nvim
 
-Move between Neovim splits and Rex panes with `<C-h>`, `<C-j>`, `<C-k>`, and `<C-l>`.
-
-Neovim handles the move when another window sits in that direction. At the edge of the current tab, the same key asks Rex to focus the neighboring pane (`rex focus left|down|up|right` in `$REX_SESSION`). A companion module binds the same keys inside Rex so focus can return to Neovim.
+`<C-h/j/k/l>` moves between Neovim windows. At the edge it focuses the neighboring Rex pane, then the previous or next Rex window when no pane is there. `<C-h>` and `<C-k>` move to the previous window. `<C-l>` and `<C-j>` move to the next one.
 
 ## Install
 
-### lazy.nvim
+lazy.nvim:
 
 ```lua
-{
-  'Kopfdreher/rex-navigator.nvim',
-  config = function()
-    require('rex-navigator').setup()
-  end,
-}
+{ 'Kopfdreher/rex-navigator.nvim', opts = {} }
 ```
 
-### vim.pack
+vim.pack:
 
 ```lua
 vim.pack.add({ 'https://github.com/Kopfdreher/rex-navigator.nvim' })
 require('rex-navigator').setup()
 ```
 
-### Rex
-
-Copy or symlink `rex/navigator.lua` where your Rex config can `require` it, then call it from `~/.config/rex/init.lua`:
+Rex, in `~/.config/rex/init.lua`:
 
 ```lua
 package.path = package.path .. ';/path/to/rex-navigator.nvim/?.lua'
 require('rex.navigator').setup()
 ```
 
-`rex.bind` registers `ctrl+h/j/k/l` as `pane.focus`. Reload with `rex config reload`.
+Then `rex config reload`. This binds `ctrl+h/j/k/l` to `pane.focus`.
 
-## Keybindings
+## Keys
 
 | Key | Direction |
 | --- | --- |
@@ -44,15 +35,14 @@ require('rex.navigator').setup()
 | `<C-k>` | up |
 | `<C-l>` | right |
 
-Mappings are set in normal, visual, and terminal mode.
+Normal, visual, and terminal mode.
 
-## Configuration
+## Options
 
 ```lua
 require('rex-navigator').setup({
-  -- Skip the Rex handoff while the current block is zoomed.
-  disable_when_zoomed = false,
-  keymaps = {
+  disable_when_zoomed = false, -- do not hand off while the Rex block is zoomed
+  keymaps = { -- false to set none
     left = '<C-h>',
     down = '<C-j>',
     up = '<C-k>',
@@ -61,16 +51,14 @@ require('rex-navigator').setup({
 })
 ```
 
-Set `keymaps = false` to skip default mappings and call `require('rex-navigator').navigate('h'|'j'|'k'|'l')` yourself.
+Call `require('rex-navigator').navigate('h'|'j'|'k'|'l')` for your own mappings.
 
-On the Rex side, pass a `keys` table to replace the defaults:
+Rex keys:
 
 ```lua
 require('rex.navigator').setup({
   keys = { h = 'left', j = 'down', k = 'up', l = 'right' },
 })
 ```
-
-## License
 
 MIT
